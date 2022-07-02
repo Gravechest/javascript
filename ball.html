@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title>opengl Epic demo</title>
+</head>
+<body>
+    <canvas style="display:block;margin-left:auto;margin-right:auto;" id="cvs" width="900" height="900"></canvas>
+</body>
+</html>
+<script>
+	class VEC2{
+		constructor(x,y){
+			this.x = x;
+			this.y = y;
+		}
+		add(p){
+			this.x += p;
+			this.y += p;
+		}
+		addv(p){
+			this.x += p.x;
+			this.y += p.y;
+		}
+		subv(p){
+			this.x -= p.x;
+			this.y -= p.y;
+		}
+		mulR(p){
+			return new VEC2(this.x*p,this.y*p);
+		}
+		divR(p){
+			return new VEC2(this.x/p,this.y/p);
+		}
+		subvR(p){
+			return new VEC2(this.x/p.x,this.y/p.y);
+		}
+		static divS(p,p2){
+			return new VEC2(p.x/p2,p.y/p2);
+		}
+		static addvS(p,p2){
+			return new VEC2(p.x+p2.x,p.y+p2.y);
+		}
+		dist(p){
+			var r = this.subvR(p);
+			return Math.sqrt(r.x*r.x+r.y*r.y);
+		}
+		subvR(p){
+			return new VEC2(this.x-p.x,this.y-p.y);
+		}
+		length(){
+			return Math.sqrt(this.x*this.x+this.y*this.y);
+		}
+		static lengthS(p){
+			return Math.sqrt(p.x*p.x+p.y*p.y);
+		}
+		normalizeR(){
+			return divR(length());
+		}
+		static normalizeS(p){
+			return VEC2.divS(p,VEC2.lengthS(p));
+		}
+		dotR(p){
+			return this.x * p.x + this.y * p.y;
+		}
+	}
+	class BALL{
+		constructor(){
+			this.pos = new VEC2(0.0,0.0);
+			this.dir = new VEC2(0.0,0.0);
+			this.sz  = 0.2;
+		}
+	}
+	var ballC = 0;
+	var ball  = [];
+	for(i = 0;i < 80;i++){
+		ball[i] = new BALL;
+		ball[i].pos.x = parseFloat(i%40)/60.0-0.8	
+		ball[i].pos.y = parseFloat(i%40)/60.0-0.8
+		ball[i].dir.x = 0.002;
+		ball[i].sz = 0.02;
+		ballC++;
+	}
+	var quad = [];
+	for(i = 0;i < ballC*24;i+=24){
+		quad[i+2]  = 0.0;
+		quad[i+3]  = 0.0;
+		quad[i+6]  = 1.0;
+		quad[i+7]  = 0.0;
+		quad[i+10] = 0.0;
+		quad[i+11] = 1.0;
+		quad[i+14] = 1.0;
+		quad[i+15] = 1.0;
+		quad[i+18] = 1.0;
+		quad[i+19] = 0.0;
+		quad[i+22] = 0.0;
+		quad[i+23] = 1.0;
+	}
+	
+    var vlak = document.getElementById("cvs");
+    vlak.style.borderWidth = "5px";
+    vlak.style.borderStyle = "solid";
+    gl = vlak.getContext("webgl2");
+
+    const fragshader = `#version 300 es
+        precision mediump float;
+		out vec4 outColor;
+		
+		in vec2 TextCrd;
+        void main() {
+			float dist = distance(TextCrd,vec2(0.5));
+			if(dist<0.5){
+				outColor.r = 1.1-dist;
+				outColor.a = 1.0;
+			}
+			else{
+				discard;
+			}
+        }`;
+    const vershader = `#version 300 es
+        in vec2 verticles;
+		in vec2 textcrd;
+		
+		out vec2 TextCrd; 
+		
+        void main() {
+			TextCrd = textcrd;
+            gl_Position = vec4(verticles[0],verticles[1],0.0,1.0);  
+        }`;
+    var shaderprogram = gl.createProgram();
+	var vertexshader = gl.createShader(gl.VERTEX_SHADER);
+	var fragmentshader = gl.createShader(gl.FRAGMENT_SHADER);
+	gl.shaderSource(vertexshader,vershader);
+	gl.shaderSource(fragmentshader,fragshader);
+	gl.compileShader(vertexshader);
+	gl.compileShader(fragmentshader);
+    gl.attachShader(shaderprogram, vertexshader);
+    gl.attachShader(shaderprogram, fragmentshader);
+    gl.linkProgram(shaderprogram);  
+    gl.useProgram(shaderprogram);
+	console.log(gl.getShaderInfoLog(fragmentshader));
+	console.log(gl.getShaderInfoLog(vertexshader));
+	var buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+	
+	var vertloc = gl.getAttribLocation(shaderprogram,"verticles");
+	gl.enableVertexAttribArray(vertloc);
+	gl.vertexAttribPointer(vertloc,2,gl.FLOAT,0,4*4,0);
+	
+	var textcrd = gl.getAttribLocation(shaderprogram,"textcrd");
+	gl.enableVertexAttribArray(textcrd);
+	gl.vertexAttribPointer(textcrd,2,gl.FLOAT,0,4*4,4*2);
+	window.requestAnimationFrame(opengl)
+	setInterval(function(){
+		for(i = 0;i < ballC;i++){
+			ball[i].pos.addv(ball[i].dir);
+			if(ball[i].pos.x - ball[i].sz < -1.0) {
+				ball[i].pos.x = -1.0 + ball[i].sz;
+				ball[i].dir.x = -ball[i].dir.x;
+			}
+			if(ball[i].pos.x + ball[i].sz > 1.0) {
+				ball[i].pos.x = 1.0 - ball[i].sz;
+				ball[i].dir.x = -ball[i].dir.x;
+			}
+			if(ball[i].pos.y - ball[i].sz < -1.0) {
+				ball[i].pos.y = -1.0 + ball[i].sz;
+				ball[i].dir.y = -ball[i].dir.y;
+			}
+			if(ball[i].pos.y + ball[i].sz > 1.0) {
+				ball[i].pos.y = 1.0 - ball[i].sz;
+				ball[i].dir.y = -ball[i].dir.y;
+			}
+			quad[i*24+0]  = ball[i].pos.x-ball[i].sz;
+			quad[i*24+1]  = ball[i].pos.y-ball[i].sz;
+			quad[i*24+4]  = ball[i].pos.x+ball[i].sz;
+			quad[i*24+5]  = ball[i].pos.y-ball[i].sz;
+			quad[i*24+8]  = ball[i].pos.x-ball[i].sz;
+			quad[i*24+9]  = ball[i].pos.y+ball[i].sz;
+			quad[i*24+12] = ball[i].pos.x+ball[i].sz;
+			quad[i*24+13] = ball[i].pos.y+ball[i].sz;
+			quad[i*24+16] = ball[i].pos.x+ball[i].sz;
+			quad[i*24+17] = ball[i].pos.y-ball[i].sz;
+			quad[i*24+20] = ball[i].pos.x-ball[i].sz;
+			quad[i*24+21] = ball[i].pos.y+ball[i].sz;			
+		}
+		for(i = 0;i < ballC;i++){
+			for(i2 = 0;i2 < ballC;i2++){
+				if(i==i2){
+					continue;
+				}
+				if(ball[i].pos.dist(ball[i2].pos)<ball[i].sz+ball[i2].sz){
+					var normal = VEC2.normalizeS(ball[i].pos.subvR(ball[i2].pos));
+					var ang = new VEC2(normal.y,-normal.x);
+					var normalVel1 = ball[i].dir.dotR(normal);
+					var normalVel2 = ball[i2].dir.dotR(normal);
+					var tangVel1    = ball[i].dir.dotR(ang);
+					var tangVel2    = ball[i2].dir.dotR(ang);
+					var ms1         = ball[i].sz * ball[i].sz * Math.PI;
+					var ms2         = ball[i2].sz * ball[i2].sz * Math.PI;
+					var normal1     = normal.mulR((normalVel1 * (ms1 - ms2) + 2 * ms2 * normalVel2) / (ms1 + ms2));
+					var normal2     = normal.mulR((normalVel2 * (ms2 - ms1) + 2 * ms1 * normalVel1) / (ms1 + ms2));
+					var tang1       = ang.mulR(tangVel1);
+					var tang2       = ang.mulR(tangVel2);
+					ball[i].dir     = VEC2.addvS(normal1,tang1);
+					ball[i2].dir    = VEC2.addvS(normal2,tang2);
+					ball[i].pos.addv(ball[i].dir);
+					ball[i2].pos.addv(ball[i2].dir);
+				}
+			}
+		}
+	}, 1);
+	function opengl() {
+		gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(quad),gl.STATIC_DRAW);
+        gl.drawArrays(gl.TRIANGLES,0,6*ballC);
+        window.requestAnimationFrame(opengl);
+    }
+</script>
