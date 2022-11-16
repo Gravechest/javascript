@@ -1,0 +1,48 @@
+<button onClick="battle(0)">steen</button>
+<button onClick="battle(1)">papier</button>
+<button onClick="battle(2)">schaar</button>
+<script>
+"use strict";
+function battle(userChoice){
+    const time = new Date();
+    const name = ["steen","papier","schaar"];
+    const cpuChoice = time.getMilliseconds()%3;
+    alert("de computer kiest: "+name[cpuChoice]);    
+    if(cpuChoice == userChoice){
+        alert("u heeft gelijk gespeelt tegen de computer");
+        return;
+    }
+    switch(userChoice){
+    case 0:
+        switch(cpuChoice){
+        case 1:
+            alert("u heeft verloren");
+            break;
+        case 2:
+            alert("u heeft gewonnen");
+            break;
+        }
+        break;
+    case 1:
+        switch(cpuChoice){
+        case 0:
+            alert("u heeft gewonnen");
+            break;
+        case 2:
+            alert("u heeft verloren");
+            break;
+        }
+        break;
+    case 2:
+        switch(cpuChoice){
+        case 0:
+            alert("u heeft verloren");
+            break;
+        case 1:
+            alert("u heeft gewonnen");
+            break;
+        }
+        break;
+    }
+}
+</script>
